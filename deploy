@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-[ ! -t 0 ] && exec 0</dev/tty 2>/dev/null || true
-
 echo ""
 echo "  hy-harness · 一键部署 code/doc lint + MCP"
 echo "  ─────────────────────────────────────────"
@@ -12,7 +10,7 @@ if [ -f codelint.json ]; then
   echo "  ⏭  codelint.json 已存在，跳过 codelint deploy"
 else
   echo "  ── codelint ──"
-  npx github:voxServalG/codelint deploy
+  npx github:voxServalG/codelint deploy </dev/tty
 fi
 
 echo ""
@@ -21,7 +19,7 @@ if [ -f doclint.json ]; then
   echo "  ⏭  doclint.json 已存在，跳过 doclint deploy"
 else
   echo "  ── doclint ──"
-  npx github:voxServalG/doclint deploy
+  npx github:voxServalG/doclint deploy </dev/tty
 fi
 
 echo ""
@@ -43,7 +41,7 @@ else
   "
   echo ""
   echo "  ── docs-gardener ──"
-  npx github:voxServalG/docs-gardener deploy
+  npx github:voxServalG/docs-gardener deploy </dev/tty
 fi
 
 echo ""
