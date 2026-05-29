@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+[ ! -t 0 ] && exec 0</dev/tty 2>/dev/null || true
+
 echo ""
 echo "  hy-harness · 一键部署 code/doc lint + MCP"
 echo "  ─────────────────────────────────────────"
