@@ -13,7 +13,7 @@
 curl -fsSL https://raw.githubusercontent.com/voxServalG/hy-harness/main/deploy | bash
 
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/voxServalG/hy-harness/main/deploy.ps1 | iex
+irm https://raw.githubusercontent.com/voxServalG/hy-harness/main/deploy.ps1 -OutFile deploy.ps1; .\deploy.ps1; rm deploy.ps1
 ```
 
 ## 做了什么
