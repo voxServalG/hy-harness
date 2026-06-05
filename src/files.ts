@@ -13,8 +13,19 @@ export function writeJsonIfMissing(filePath: string, content: object): boolean {
   return true;
 }
 
+export function writeJson(filePath: string, content: object): boolean {
+  fs.writeFileSync(filePath, JSON.stringify(content, null, 2) + "\n", "utf-8");
+  return true;
+}
+
 export function writeYamlIfMissing(filePath: string, content: string): boolean {
   if (fs.existsSync(filePath)) return false;
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, content, "utf-8");
+  return true;
+}
+
+export function writeYaml(filePath: string, content: string): boolean {
   ensureDir(path.dirname(filePath));
   fs.writeFileSync(filePath, content, "utf-8");
   return true;

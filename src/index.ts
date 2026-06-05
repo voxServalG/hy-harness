@@ -121,7 +121,21 @@ async function main() {
   }
 
   if (existing && !cmd) {
-    console.log(`\n  ✓  Already at v${existing.version}. Nothing to do.\n`);
+    let overrides: DeployOverrides = {};
+    let reconfigure = false;
+    if (!flags.yes) {
+      overrides = await interactiveDeploy(flags);
+      reconfigure = true;
+    }
+    if (reconfigure) {
+      console.log("\n  hy-harness · reconfigure\n  ───────────────────────\n");
+      const r = deploy(root, overrides, true);
+      for (const c of r.created) console.log(`  + ${c}`);
+      for (const s of r.skipped) console.log(`  - ${s} (skipped, exists)`);
+      console.log(`\n  ✅  ${r.created.length} written, ${r.skipped.length} skipped.\n`);
+    } else {
+      console.log(`\n  ✓  Already at v${existing.version}. Nothing to do.\n`);
+    }
     return;
   }
 
