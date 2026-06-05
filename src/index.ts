@@ -23,13 +23,12 @@ function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
 
 function ask(ttyFd: number, question: string, defaultVal: string): Promise<string> {
   return new Promise(resolve => {
-    const input = fs.createReadStream("", { fd: ttyFd });
-    const output = fs.createWriteStream("", { fd: ttyFd });
-    const rl = readline.createInterface({ input, output });
+    const rl = readline.createInterface({
+      input: fs.createReadStream("", { fd: ttyFd }),
+      output: fs.createWriteStream("", { fd: ttyFd }),
+    });
     rl.question(question, answer => {
       rl.close();
-      input.destroy();
-      output.destroy();
       resolve(answer.trim() || defaultVal);
     });
   });
@@ -138,7 +137,7 @@ async function main() {
     } else {
       console.log(`\n  ✓  Already at v${existing.version}. Nothing to do.\n`);
     }
-    return;
+    process.exit(0);
   }
 
   // Deploy path
