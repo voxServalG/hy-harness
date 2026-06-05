@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 const HARNESS_JSON = ".hy/harness.json";
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export interface HarnessVersion {
   version: number;

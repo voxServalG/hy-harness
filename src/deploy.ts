@@ -19,19 +19,35 @@ export interface DeployResult {
   skipped: string[];
 }
 
-export function deploy(root: string): DeployResult {
+export interface DeployOverrides {
+  codeExt?: string;
+  lintDirs?: string[];
+  codeDirs?: string[];
+  docsDir?: string;
+  baseBranch?: string;
+}
+
+export function deploy(root: string, overrides: DeployOverrides = {}): DeployResult {
   const created: string[] = [];
   const skipped: string[] = [];
   const project = detectProjectType(root);
-  const overrides = { codeExt: project.codeExt, codeDirs: project.codeDirs };
+
+  const codeExt = overrides.codeExt ?? project.codeExt;
+  const lintDirs = overrides.lintDirs ?? project.lintDirs;
+  const codeDirs = overrides.codeDirs ?? project.codeDirs;
+
+  const lintOverrides = { codeExt, lintDirs, codeDirs: lintDirs };
+  const docOverrides: Record<string, unknown> = { codeExt, codeDirs };
+  if (overrides.docsDir !== undefined) docOverrides.docsDir = overrides.docsDir;
+  if (overrides.baseBranch !== undefined) docOverrides.baseBranch = overrides.baseBranch;
 
   // codelint.json
-  const cl = codelintTemplate(overrides);
+  const cl = codelintTemplate(lintOverrides);
   if (writeJsonIfMissing(path.join(root, "codelint.json"), cl)) created.push("codelint.json");
   else skipped.push("codelint.json");
 
   // doclint.json
-  const dl = doclintTemplate(overrides);
+  const dl = doclintTemplate(docOverrides);
   if (writeJsonIfMissing(path.join(root, "doclint.json"), dl)) created.push("doclint.json");
   else skipped.push("doclint.json");
 

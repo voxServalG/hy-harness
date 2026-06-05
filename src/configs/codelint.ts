@@ -1,4 +1,5 @@
 export interface CodelintConfig {
+  lintDirs: string[];
   codeDirs: string[];
   codeExt: string;
   baseBranch: string;
@@ -6,6 +7,7 @@ export interface CodelintConfig {
 }
 
 export const defaultCodelint: CodelintConfig = {
+  lintDirs: ["src"],
   codeDirs: ["src"],
   codeExt: ".py",
   baseBranch: "dev",
