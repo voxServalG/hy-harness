@@ -27,6 +27,21 @@ export function upgrade(root: string): UpgradeResult {
     }
   }
 
+  // v2 → v3: add lintDirs to codelint.json (value from existing codeDirs)
+  if (from < 3) {
+    const clPath = path.join(root, "codelint.json");
+    if (fs.existsSync(clPath)) {
+      try {
+        const cl = JSON.parse(fs.readFileSync(clPath, "utf-8"));
+        if (!cl.lintDirs && cl.codeDirs) {
+          cl.lintDirs = cl.codeDirs;
+          fs.writeFileSync(clPath, JSON.stringify(cl, null, 2) + "\n", "utf-8");
+          added.push("codelint.json: +lintDirs");
+        }
+      } catch { /* keep existing config intact */ }
+    }
+  }
+
   writeHarnessVersion(root, CURRENT_VERSION, prev);
 
   const kept: string[] = [];
