@@ -21,14 +21,9 @@ function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
   return flags;
 }
 
-function ask(ttyFd: number, question: string, defaultVal: string): Promise<string> {
+function ask(rl: readline.Interface, question: string, defaultVal: string): Promise<string> {
   return new Promise(resolve => {
-    const rl = readline.createInterface({
-      input: fs.createReadStream("", { fd: ttyFd }),
-      output: fs.createWriteStream("", { fd: ttyFd }),
-    });
     rl.question(question, answer => {
-      rl.close();
       resolve(answer.trim() || defaultVal);
     });
   });
@@ -45,15 +40,13 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
   const detected = detectProjectType(root);
   const existing = readHarnessVersion(root);
 
-  const tty = ttyFd;
-
   if (existing) {
-    fs.writeSync(tty, "\n  hy-harness · re-configure\n  ──────────────────────────\n\n");
-    fs.writeSync(tty, "  Current deployment found. Press Enter to keep defaults, type to override.\n\n");
+    fs.writeSync(ttyFd, "\n  hy-harness · re-configure\n  ──────────────────────────\n\n");
+    fs.writeSync(ttyFd, "  Current deployment found. Press Enter to keep defaults, type to override.\n\n");
   } else {
-    fs.writeSync(tty, "\n  hy-harness · config\n  ───────────────────\n\n");
-    fs.writeSync(tty, "  Detected project type. Press Enter to accept, type to override.\n");
-    fs.writeSync(tty, `  Detected: codeExt=${detected.codeExt}  lintDirs=${detected.lintDirs.join(",")}  codeDirs=${detected.codeDirs.join(",")}\n\n`);
+    fs.writeSync(ttyFd, "\n  hy-harness · config\n  ───────────────────\n\n");
+    fs.writeSync(ttyFd, "  Detected project type. Press Enter to accept, type to override.\n");
+    fs.writeSync(ttyFd, `  Detected: codeExt=${detected.codeExt}  lintDirs=${detected.lintDirs.join(",")}  codeDirs=${detected.codeDirs.join(",")}\n\n`);
   }
 
   const codeExtDefault = flags.codeExt ?? detected.codeExt;
@@ -62,13 +55,18 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
   const docsDirDefault = flags.docsDir ?? "docs";
   const branchDefault = flags.baseBranch ?? "dev";
 
-  const codeExt = await ask(tty, `  Code extension [${codeExtDefault}] `, codeExtDefault);
-  const lintDirs = await ask(tty, `  Lint dirs (codelint) [${lintDirsDefault}] `, lintDirsDefault);
-  const codeDirs = await ask(tty, `  Code dirs (doclint) [${codeDirsDefault}] `, codeDirsDefault);
-  const docsDir = await ask(tty, `  Docs dir [${docsDirDefault}] `, docsDirDefault);
-  const branch = await ask(tty, `  Base branch [${branchDefault}] `, branchDefault);
+  const rl = readline.createInterface({
+    input: fs.createReadStream("", { fd: ttyFd }),
+    output: fs.createWriteStream("", { fd: ttyFd }),
+  });
 
-  fs.writeSync(tty, "\n");
+  const codeExt = await ask(rl, `  Code extension [${codeExtDefault}] `, codeExtDefault);
+  const lintDirs = await ask(rl, `  Lint dirs (codelint) [${lintDirsDefault}] `, lintDirsDefault);
+  const codeDirs = await ask(rl, `  Code dirs (doclint) [${codeDirsDefault}] `, codeDirsDefault);
+  const docsDir = await ask(rl, `  Docs dir [${docsDirDefault}] `, docsDirDefault);
+  const branch = await ask(rl, `  Base branch [${branchDefault}] `, branchDefault);
+
+  rl.close();
   fs.closeSync(ttyFd);
 
   return {
