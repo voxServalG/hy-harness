@@ -80,8 +80,20 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
 
 function waitEnter(): Promise<void> {
   return new Promise(resolve => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question("  按 Enter 以继续 ", () => { rl.close(); resolve(); });
+    try {
+      const fd = fs.openSync("/dev/tty", "r");
+      const rl = readline.createInterface({
+        input: fs.createReadStream("", { fd }),
+        output: process.stdout,
+      });
+      rl.question("  按 Enter 以继续 ", () => {
+        rl.close();
+        fs.closeSync(fd);
+        resolve();
+      });
+    } catch {
+      resolve();
+    }
   });
 }
 
