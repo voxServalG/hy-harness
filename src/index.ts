@@ -41,12 +41,12 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
   const existing = readHarnessVersion(root);
 
   if (existing) {
-    fs.writeSync(ttyFd, "\n  hy-harness · re-configure\n  ──────────────────────────\n\n");
-    fs.writeSync(ttyFd, "  Current deployment found. Press Enter to keep defaults, type to override.\n\n");
+    fs.writeSync(ttyFd, "\n  hy-harness · 重新配置\n  ──────────────────────\n\n");
+    fs.writeSync(ttyFd, "  已检测到现有部署。回车保持默认值，输入可覆盖。\n\n");
   } else {
-    fs.writeSync(ttyFd, "\n  hy-harness · config\n  ───────────────────\n\n");
-    fs.writeSync(ttyFd, "  Detected project type. Press Enter to accept, type to override.\n");
-    fs.writeSync(ttyFd, `  Detected: codeExt=${detected.codeExt}  lintDirs=${detected.lintDirs.join(",")}  codeDirs=${detected.codeDirs.join(",")}\n\n`);
+    fs.writeSync(ttyFd, "\n  hy-harness · 配置\n  ─────────────────\n\n");
+    fs.writeSync(ttyFd, "  检测到项目类型。回车确认，输入可覆盖。\n");
+    fs.writeSync(ttyFd, `  检测结果: 代码后缀=${detected.codeExt}  生产代码目录=${detected.lintDirs.join(",")}  文档感知目录=${detected.codeDirs.join(",")}\n\n`);
   }
 
   const codeExtDefault = flags.codeExt ?? detected.codeExt;
@@ -60,11 +60,11 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
     output: fs.createWriteStream("", { fd: ttyFd }),
   });
 
-  const codeExt = await ask(rl, `  Code extension [${codeExtDefault}] `, codeExtDefault);
-  const lintDirs = await ask(rl, `  Lint dirs (codelint) [${lintDirsDefault}] `, lintDirsDefault);
-  const codeDirs = await ask(rl, `  Code dirs (doclint) [${codeDirsDefault}] `, codeDirsDefault);
-  const docsDir = await ask(rl, `  Docs dir [${docsDirDefault}] `, docsDirDefault);
-  const branch = await ask(rl, `  Base branch [${branchDefault}] `, branchDefault);
+  const codeExt = await ask(rl, `  代码后缀 [${codeExtDefault}] `, codeExtDefault);
+  const lintDirs = await ask(rl, `  生产代码目录 (codelint) [${lintDirsDefault}] `, lintDirsDefault);
+  const codeDirs = await ask(rl, `  文档感知目录 (doclint) [${codeDirsDefault}] `, codeDirsDefault);
+  const docsDir = await ask(rl, `  文档目录 [${docsDirDefault}] `, docsDirDefault);
+  const branch = await ask(rl, `  基准分支 [${branchDefault}] `, branchDefault);
 
   rl.close();
   fs.closeSync(ttyFd);
@@ -76,6 +76,13 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
     docsDir: docsDir !== docsDirDefault ? docsDir : undefined,
     baseBranch: branch !== branchDefault ? branch : undefined,
   };
+}
+
+function waitEnter(): Promise<void> {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question("  按 Enter 以继续 ", () => { rl.close(); resolve(); });
+  });
 }
 
 async function main() {
@@ -127,13 +134,14 @@ async function main() {
       reconfigure = true;
     }
     if (reconfigure) {
-      console.log("\n  hy-harness · reconfigure\n  ───────────────────────\n");
+      console.log("\n  hy-harness · 重新配置\n  ──────────────────────\n");
       const r = deploy(root, overrides, true);
       for (const c of r.created) console.log(`  + ${c}`);
-      for (const s of r.skipped) console.log(`  - ${s} (skipped, exists)`);
-      console.log(`\n  ✅  ${r.created.length} written, ${r.skipped.length} skipped.\n`);
+      for (const s of r.skipped) console.log(`  - ${s}（已存在，跳过）`);
+      console.log(`\n  ✅  已写入 ${r.created.length}，跳过 ${r.skipped.length}。\n`);
+      await waitEnter();
     } else {
-      console.log(`\n  ✓  Already at v${existing.version}. Nothing to do.\n`);
+      console.log(`\n  ✓  已是最新版本 v${existing.version}。\n`);
     }
     process.exit(0);
   }
@@ -146,11 +154,13 @@ async function main() {
     overrides = await interactiveDeploy(flags);
   }
 
-  console.log("\n  hy-harness · deploy\n  ──────────────────\n");
+  console.log("\n  hy-harness · 部署\n  ─────────────────\n");
   const r = deploy(root, overrides);
   for (const c of r.created) console.log(`  + ${c}`);
-  for (const s of r.skipped) console.log(`  - ${s} (skipped, exists)`);
-  console.log(`\n  ✅  ${r.created.length} created, ${r.skipped.length} kept.\n`);
+  for (const s of r.skipped) console.log(`  - ${s}（已存在，跳过）`);
+  console.log(`\n  ✅  已创建 ${r.created.length}，跳过 ${r.skipped.length}。\n`);
+  await waitEnter();
+  process.exit(0);
 }
 
 main().catch(err => {
