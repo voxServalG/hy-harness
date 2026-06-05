@@ -86,7 +86,7 @@ function waitEnter(): Promise<void> {
         input: fs.createReadStream("", { fd }),
         output: process.stdout,
       });
-      rl.question("  按 Enter 以继续 ", () => {
+      rl.question("  猛击 Enter 以继续 ", () => {
         rl.close();
         fs.closeSync(fd);
         resolve();
