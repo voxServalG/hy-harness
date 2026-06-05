@@ -8,7 +8,9 @@ import { docsCheckYaml } from "./configs/workflow-docs-check.js";
 import { gitignoreAppend } from "./configs/gitignore.js";
 import {
   writeJsonIfMissing,
+  writeJson,
   writeYamlIfMissing,
+  writeYaml,
   appendGitignore,
   ensureGithubDir,
 } from "./files.js";
@@ -27,7 +29,7 @@ export interface DeployOverrides {
   baseBranch?: string;
 }
 
-export function deploy(root: string, overrides: DeployOverrides = {}): DeployResult {
+export function deploy(root: string, overrides: DeployOverrides = {}, force = false): DeployResult {
   const created: string[] = [];
   const skipped: string[] = [];
   const project = detectProjectType(root);
@@ -36,6 +38,9 @@ export function deploy(root: string, overrides: DeployOverrides = {}): DeployRes
   const lintDirs = overrides.lintDirs ?? project.lintDirs;
   const codeDirs = overrides.codeDirs ?? project.codeDirs;
 
+  const writeJ = force ? writeJson : writeJsonIfMissing;
+  const writeY = force ? writeYaml : writeYamlIfMissing;
+
   const lintOverrides = { codeExt, lintDirs, codeDirs: lintDirs };
   const docOverrides: Record<string, unknown> = { codeExt, codeDirs };
   if (overrides.docsDir !== undefined) docOverrides.docsDir = overrides.docsDir;
@@ -43,26 +48,26 @@ export function deploy(root: string, overrides: DeployOverrides = {}): DeployRes
 
   // codelint.json
   const cl = codelintTemplate(lintOverrides);
-  if (writeJsonIfMissing(path.join(root, "codelint.json"), cl)) created.push("codelint.json");
+  if (writeJ(path.join(root, "codelint.json"), cl)) created.push("codelint.json");
   else skipped.push("codelint.json");
 
   // doclint.json
   const dl = doclintTemplate(docOverrides);
-  if (writeJsonIfMissing(path.join(root, "doclint.json"), dl)) created.push("doclint.json");
+  if (writeJ(path.join(root, "doclint.json"), dl)) created.push("doclint.json");
   else skipped.push("doclint.json");
 
   // docs-gardener.json (inherits from doclint)
   const gd = gardenerFromDoclint(dl);
-  if (writeJsonIfMissing(path.join(root, "docs-gardener.json"), gd)) created.push("docs-gardener.json");
+  if (writeJ(path.join(root, "docs-gardener.json"), gd)) created.push("docs-gardener.json");
   else skipped.push("docs-gardener.json");
 
   // CI workflows
   ensureGithubDir(root);
-  if (writeYamlIfMissing(path.join(root, ".github/workflows/code-quality.yml"), codeQualityYaml()))
+  if (writeY(path.join(root, ".github/workflows/code-quality.yml"), codeQualityYaml()))
     created.push(".github/workflows/code-quality.yml");
   else skipped.push(".github/workflows/code-quality.yml");
 
-  if (writeYamlIfMissing(path.join(root, ".github/workflows/docs-check.yml"), docsCheckYaml()))
+  if (writeY(path.join(root, ".github/workflows/docs-check.yml"), docsCheckYaml()))
     created.push(".github/workflows/docs-check.yml");
   else skipped.push(".github/workflows/docs-check.yml");
 
