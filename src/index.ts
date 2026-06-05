@@ -21,10 +21,6 @@ function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
   return flags;
 }
 
-function isTTY(): boolean {
-  try { return process.stdin.isTTY === true; } catch { return false; }
-}
-
 function ask(tty: number, question: string, defaultVal: string): Promise<string> {
   return new Promise(resolve => {
     const rl = readline.createInterface({
@@ -133,13 +129,8 @@ async function main() {
   let overrides: DeployOverrides = { ...flags };
   delete (overrides as Record<string, unknown>).yes;
 
-  if (isTTY() && !flags.yes) {
+  if (!flags.yes) {
     overrides = await interactiveDeploy(flags);
-  } else if (!isTTY()) {
-    const detected = detectProjectType(root);
-    if (!flags.codeExt) flags.codeExt = detected.codeExt;
-    if (!flags.lintDirs) flags.lintDirs = detected.lintDirs;
-    if (!flags.codeDirs) flags.codeDirs = detected.codeDirs;
   }
 
   console.log("\n  hy-harness · deploy\n  ──────────────────\n");
