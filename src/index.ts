@@ -21,14 +21,15 @@ function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
   return flags;
 }
 
-function ask(tty: number, question: string, defaultVal: string): Promise<string> {
+function ask(ttyFd: number, question: string, defaultVal: string): Promise<string> {
   return new Promise(resolve => {
-    const rl = readline.createInterface({
-      input: fs.createReadStream("", { fd: tty }),
-      output: fs.createWriteStream("", { fd: tty }),
-    });
+    const input = fs.createReadStream("", { fd: ttyFd });
+    const output = fs.createWriteStream("", { fd: ttyFd });
+    const rl = readline.createInterface({ input, output });
     rl.question(question, answer => {
       rl.close();
+      input.destroy();
+      output.destroy();
       resolve(answer.trim() || defaultVal);
     });
   });
@@ -69,6 +70,7 @@ async function interactiveDeploy(flags: DeployOverrides): Promise<DeployOverride
   const branch = await ask(tty, `  Base branch [${branchDefault}] `, branchDefault);
 
   fs.writeSync(tty, "\n");
+  fs.closeSync(ttyFd);
 
   return {
     codeExt: codeExt !== codeExtDefault || flags.codeExt ? codeExt : undefined,
