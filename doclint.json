@@ -1,0 +1,9 @@
+{
+  "docsDir": "docs",
+  "codeDirs": [
+    "src"
+  ],
+  "codeExt": ".ts",
+  "baseBranch": "dev",
+  "maxLines": 200
+}
