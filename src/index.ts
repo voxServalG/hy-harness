@@ -8,10 +8,11 @@ import { readHarnessVersion, CURRENT_VERSION } from "./version.js";
 
 const root = process.cwd();
 
-function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
-  const flags: DeployOverrides & { yes?: boolean } = {};
+function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean; json?: boolean } {
+  const flags: DeployOverrides & { yes?: boolean; json?: boolean } = {};
   for (const arg of argv) {
     if (arg === "--yes" || arg === "-y") flags.yes = true;
+    else if (arg === "--json") flags.json = true;
     else if (arg.startsWith("--code-ext=")) flags.codeExt = arg.slice(11).replace(/^\./, "");
     else if (arg.startsWith("--lint-dirs=")) flags.lintDirs = arg.slice(12).split(",").map(s => s.trim()).filter(Boolean);
     else if (arg.startsWith("--code-dirs=")) flags.codeDirs = arg.slice(12).split(",").map(s => s.trim()).filter(Boolean);
@@ -19,6 +20,45 @@ function parseFlags(argv: string[]): DeployOverrides & { yes?: boolean } {
     else if (arg.startsWith("--branch=")) flags.baseBranch = arg.slice(9);
   }
   return flags;
+}
+
+function parseCommand(argv: string[]): string {
+  for (const arg of argv) {
+    if (arg === "check" || arg === "--check") return "check";
+    if (arg === "upgrade" || arg === "--upgrade" || arg === "-u") return "upgrade";
+    if (!arg.startsWith("-")) return arg;
+  }
+  return "";
+}
+
+function checkStatus() {
+  const requiredArtifacts = [
+    "codelint.json",
+    "doclint.json",
+    "docs-gardener.json",
+    ".github/workflows/code-quality.yml",
+    ".github/workflows/docs-check.yml",
+  ];
+  const v = readHarnessVersion(root);
+  const missingArtifacts = requiredArtifacts.filter(file => !fs.existsSync(`${root}/${file}`));
+  const outdatedArtifacts = v && v.version < CURRENT_VERSION ? [".hy/harness.json"] : [];
+  const status = !v
+    ? "not_deployed"
+    : missingArtifacts.length > 0
+      ? "missing_artifacts"
+      : outdatedArtifacts.length > 0
+        ? "outdated"
+        : "up_to_date";
+
+  return {
+    ok: missingArtifacts.length === 0 && outdatedArtifacts.length === 0,
+    status,
+    currentTemplateVersion: v?.version ?? null,
+    latestTemplateVersion: CURRENT_VERSION,
+    missingArtifacts,
+    outdatedArtifacts,
+    requiresUser: false,
+  };
 }
 
 function ask(rl: readline.Interface, question: string, defaultVal: string): Promise<string> {
@@ -99,10 +139,10 @@ function waitEnter(): Promise<void> {
 
 async function main() {
   const rawArgs = process.argv.slice(2);
-  const cmd = rawArgs.find(a => !a.startsWith("-")) || "";
+  const cmd = parseCommand(rawArgs);
   const flags = parseFlags(rawArgs);
 
-  if (cmd === "upgrade" || cmd === "--upgrade" || cmd === "-u") {
+  if (cmd === "upgrade") {
     console.log("\n  hy-harness upgrade");
     console.log("  ──────────────────\n");
     const r = upgrade(root);
@@ -120,9 +160,10 @@ async function main() {
     process.exit(0);
   }
 
-  if (cmd === "check" || cmd === "--check") {
-    const v = readHarnessVersion(root);
-    if (v) console.log(`v${v.version}  (current: v${CURRENT_VERSION})`);
+  if (cmd === "check") {
+    const status = checkStatus();
+    if (flags.json) console.log(JSON.stringify(status, null, 2));
+    else if (status.currentTemplateVersion !== null) console.log(`v${status.currentTemplateVersion}  (current: v${CURRENT_VERSION})`);
     else console.log("not deployed");
     process.exit(0);
   }
